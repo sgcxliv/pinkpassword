@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💖 Password Strength Analyzer 💖</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #4a0e2b;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff0f5; /* Light pink background */
+        }
+        h1 {
+            color: #c2185b;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(194, 24, 91, 0.2);
+        }
+        .container {
+            background-color: #ffe4e1;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(194, 24, 91, 0.1);
+            border: 2px solid #ff69b4;
+        }
+        .password-input-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .password-input {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid #c2185b;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            background-color: #fff5ee;
+            flex-grow: 1;
+        }
+        .generate-btn {
+            background-color: #ff69b4; 
+            color: white; 
+            border: none; 
+            padding: 10px 15px; 
+            border-radius: 10px; 
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-bottom: 15px;
+        }
+        .strength-meter {
+            height: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            background-color: #ffdde6;
+        }
+        .strength-label {
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 18px;
+            color: #c2185b;
+        }
+        .tab {
+            overflow: hidden;
+            border: 1px solid #ff69b4;
+            background-color: #ffc0cb;
+            border-radius: 10px 10px 0 0;
+        }
+        .tab button {
+            background-color: inherit;
+            float: left;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 10px 16px;
+            transition: 0.3s;
+            font-size: 16px;
+            color: #4a0e2b;
+        }
+        .tab button:hover {
+            background-color: #ffb6c1;
+        }
+        .tab button.active {
+            background-color: #ff69b4;
+            color: white;
+        }
+        .tabcontent {
+            display: none;
+            padding: 20px;
+            border: 2px solid #ff69b4;
+            border-top: none;
+            border-radius: 0 0 10px 10px;
+            background-color: #fff0f5;
+            animation: fadeEffect 1s;
+        }
+        @keyframes fadeEffect {
+            from {opacity: 0;}
+            to {opacity: 1;}
+        }
+        .time-estimate {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #4a0e2b;
+        }
+        .pattern-list {
+            margin-top: 10px;
+            color: #4a0e2b;
+        }
+        .entropy-bar {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+        }
+        .entropy-value {
+            font-weight: bold;
+            width: 60px;
+            color: #c2185b;
+        }
+        .bar-container {
+            flex-grow: 1;
+            background-color: #ffdde6;
+            height: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 0 10px;
+        }
+        .bar {
+            height: 100%;
+            background-color: #ff69b4;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        .explanation {
+            font-style: italic;
+            color: #4a0e2b;
+        }
+        .math-section {
+            background-color: #fff0f5;
+            border: 1px solid #ff69b4;
+            border-radius: 10px;
+            padding: 15px;
+            color: #4a0e2b;
+        }
+        .math-section h4 {
+            color: #c2185b;
+            border-bottom: 1px solid #ff69b4;
+            padding-bottom: 10px;
+        }
+        .comparison-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .comparison-box {
+            width: 48%;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #ff69b4;
+            background-color: #fff5ee;
+        }
+    </style>
+</head>
+<body>
+    <h1>💖 Password Strength Analyzer 💖</h1>
+    
+    <div class="container">
+        <p>Enter a password to analyze its strength based on probabilistic security measures, or generate a strong random one:</p>
+        <div class="password-input-container">
+            <input type="text" id="passwordInput" class="password-input" placeholder="Type your password here">
+            <button id="generatePasswordBtn" class="generate-btn">Random</button>
+        </div>
+        
+        <div class="strength-label">Password Strength: <span id="strengthText">Not Rated</span></div>
+        <div class="strength-meter" id="strengthMeter"></div>
+        
+        <div class="entropy-bar">
+            <span class="entropy-value">Entropy: <span id="entropyValue">0</span> bits</span>
+            <div class="bar-container">
+                <div class="bar" id="entropyBar"></div>
+            </div>
+            <span id="entropyExplanation" class="explanation">Higher is better</span>
+        </div>
+        
+        <div class="time-estimate">
+            Estimated time to crack:
+            <ul>
+                <li>Online attack (100 guesses/second): <span id="onlineTime">instantly</span></li>
+                <li>Offline attack (1 billion guesses/second): <span id="offlineTime">instantly</span></li>
+            </ul>
+        </div>
+        
+        <div class="tab">
+            <button class="tablinks active" onclick="openTab(event, 'Analysis')">Analysis</button>
+            <button class="tablinks" onclick="openTab(event, 'Mathematics')">Mathematics</button>
+            <button class="tablinks" onclick="openTab(event, 'Comparison')">Random vs. Human</button>
+        </div>
+        
+        <div id="Analysis" class="tabcontent" style="display: block;">
+            <h3>Password Analysis</h3>
+            <p>Issues detected in your password:</p>
+            <ul id="patternList" class="pattern-list">
+                <li>Enter a password to see analysis</li>
+            </ul>
+        </div>
+        
+        <div id="Mathematics" class="tabcontent">
+            <h3>The Math Behind Password Security</h3>
+            <div class="math-section">       
+                <h4>Shannon Entropy: A More Precise Definition</h4>
+                <p>The Shannon Entropy formula for password strength is actually a sum, not a simple multiplication. The correct formulation is:</p>
+                <p><strong>H(X) = -∑(p(x) * log₂(p(x)))</strong></p>
+                <p>Where:</p>
+                <ul>
+                    <li><strong>H(X)</strong> is the entropy of the password</li>
+                    <li><strong>p(x)</strong> is the probability of each character in the password</li>
+                    <li>The sum is taken over all possible characters</li>
+                </ul>
+                
+                <p>For a truly random password, this simplifies to:</p>
+                <p><strong>H(X) = L * log₂(N)</strong></p>
+                <ul>
+                    <li><strong>L</strong> = Length of password</li>
+                    <li><strong>N</strong> = Size of character set used</li>
+                </ul>
+                
+                <h4>Entropy Calculation Example</h4>
+                <p>Consider a password with:</p>
+                <ul>
+                    <li>Lowercase letters (26 characters)</li>
+                    <li>Uppercase letters (26 characters)</li>
+                    <li>Numbers (10 characters)</li>
+                    <li>Special symbols (10 characters)</li>
+                </ul>
+                <p>Total character set: <strong>N = 72</strong><br>
+                Password length: <strong>L = 12</strong></p>
+                <p>Entropy: <strong>H(X) = 12 * log₂(72) ≈ 71.7 bits</strong></p>
+                
+                <h4>Probabilistic Password Cracking</h4>
+                <p>The probability of guessing a password follows an exponential decay:</p>
+                <p><strong>P(success) = 1 / (N^L)</strong></p>
+                <p>Key Insights:</p>
+                <ul>
+                    <li>Each additional character exponentially increases complexity</li>
+                    <li>A 12-character random password becomes computationally infeasible to crack</li>
+                </ul>
+                
+                <h4>Pattern Reduction & Effective Entropy</h4>
+                <p>Patterns dramatically reduce a password's true security:</p>
+                <ul>
+                    <li>Common words drastically limit the search space</li>
+                    <li>Sequential characters create predictable patterns</li>
+                    <li>Attackers use sophisticated probabilistic models to guess efficiently</li>
+                </ul>
+                
+                <h4>Time to Crack Calculations</h4>
+                <p>Average cracking time is calculated as:</p>
+                <p><strong>T = (2^E) / (2 * S)</strong></p>
+                <p>Where:</p>
+                <ul>
+                    <li><strong>E</strong> = Entropy in bits</li>
+                    <li><strong>S</strong> = Guessing attempts per second</li>
+                    <li>Division by 2 accounts for average search space exploration</li>
+                </ul>
+                
+                <p class="explanation">Pro Tip: When Google suggests a strong password, take it! Or make sure to test the strength of your password here before you set it in stone.</p>
+            </div>
+        </div>
+        
+        <div id="Comparison" class="tabcontent">
+            <h3>Random vs. Human-Created Passwords</h3>
+            <p>See how a randomly generated password compares to the one you entered:</p>
+            
+            <div class="comparison-container">
+                <div class="comparison-box">
+                    <h4>Your Password</h4>
+                    <p id="userPasswordDisplay">Enter a password to compare</p>
+                    <p>Entropy: <span id="userEntropy">0</span> bits</p>
+                    <p>Character distribution: <span id="userDistribution">N/A</span></p>
+                </div>
+                
+                <div class="comparison-box">
+                    <h4>Random Password</h4>
+                    <p id="randomPassword">2f#Kp8!qR5$vZ</p>
+                    <p>Entropy: <span id="randomEntropy">77.5</span> bits</p>
+                    <p>Character distribution: Uniform (optimal)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Character sets (as in the original script)
+        const LOWERCASE = 'abcdefghijklmnopqrstuvwxyz';
+        const UPPERCASE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const DIGITS = '0123456789';
+        const SYMBOLS = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+        
+        // Common patterns to check
+        const commonPatterns = [
+            { regex: /^[a-zA-Z]+$/, description: "Only letters" },
+            { regex: /^[0-9]+$/, description: "Only numbers" },
+            { regex: /^[a-z]+$/, description: "Only lowercase letters" },
+            { regex: /^[A-Z]+$/, description: "Only uppercase letters" },
+            { regex: /123|234|345|456|567|678|789|987|876|765|654|543|432|321/, description: "Sequential numbers" },
+            { regex: /abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz/, description: "Sequential letters" },
+            { regex: /qwert|asdfg|zxcvb/, description: "Keyboard pattern" },
+            { regex: /password|admin|login|welcome|secret|123456|qwerty/, description: "Common password" },
+            { regex: /(.)\1{2,}/, description: "Repeated characters" },
+            { regex: /(..+)\1{1,}/, description: "Repeated pattern" }
+        ];
+        
+        // Common dictionary words
+        const commonWords = [
+            "password", "welcome", "admin", "login", "user", "guest", "letmein", "monkey", "dragon", "baseball", 
+            "football", "superman", "batman", "trustno", "secret", "shadow", "master", "sunshine", "princess", "hello"
+        ];
+        
+        // DOM elements
+        const passwordInput = document.getElementById('passwordInput');
+        const generatePasswordBtn = document.getElementById('generatePasswordBtn');
+        const strengthMeter = document.getElementById('strengthMeter');
+        const strengthText = document.getElementById('strengthText');
+        const entropyValue = document.getElementById('entropyValue');
+        const entropyBar = document.getElementById('entropyBar');
+        const entropyExplanation = document.getElementById('entropyExplanation');
+        const onlineTime = document.getElementById('onlineTime');
+        const offlineTime = document.getElementById('offlineTime');
+        const patternList = document.getElementById('patternList');
+        const userPasswordDisplay = document.getElementById('userPasswordDisplay');
+        const userEntropy = document.getElementById('userEntropy');
+        const userDistribution = document.getElementById('userDistribution');
+        const randomEntropy = document.getElementById('randomEntropy');
+        const randomPassword = document.getElementById('randomPassword');
+        
+        // Event listener for password input
+        passwordInput.addEventListener('input', analyzePassword);
+        
+        // Event listener for generate password button
+        generatePasswordBtn.addEventListener('click', () => {
+            // Generate a random password
+            const newRandomPassword = generateRandomPassword(14);
+            
+// Set the generated password in the input field
+        passwordInput.value = newRandomPassword;
+        
+        // Trigger password analysis
+        analyzePassword();
+    });
+    
+    // Modify existing generateRandomPassword function to ensure complexity
+    function generateRandomPassword(length) {
+        const characterSets = [
+            LOWERCASE,
+            UPPERCASE,
+            DIGITS,
+            SYMBOLS
+        ];
+        
+        let password = '';
+        const minCharTypes = 3; // Ensure at least 3 different character types
+        
+        // Ensure at least one character from each of the first three sets
+        characterSets.slice(0, minCharTypes).forEach(charSet => {
+            const randomChar = charSet[Math.floor(Math.random() * charSet.length)];
+            password += randomChar;
+        });
+        
+        // Fill the rest of the password with random characters from all sets
+        const allChars = characterSets.join('');
+        while (password.length < length) {
+            const randomChar = allChars[Math.floor(Math.random() * allChars.length)];
+            password += randomChar;
+        }
+        
+        // Shuffle the password to distribute character types
+        return password.split('').sort(() => Math.random() - 0.5).join('');
+    }
+    
+    // Function to analyze password strength
+    function analyzePassword() {
+        const password = passwordInput.value;
+        
+        if (!password) {
+            resetAnalysis();
+            return;
+        }
+        
+        // Calculate basic entropy
+        const entropy = calculateEntropy(password);
+        
+        // Adjust for patterns
+        const { adjustedEntropy, detectedPatterns } = adjustForPatterns(password, entropy);
+        
+        // Update UI with results
+        updateStrengthMeter(adjustedEntropy);
+        updateEntropyDisplay(entropy, adjustedEntropy);
+        updateTimeEstimates(adjustedEntropy);
+        updatePatternList(detectedPatterns);
+        updateComparisonTab(password, adjustedEntropy);
+    }
+    
+    // Calculate basic entropy
+    function calculateEntropy(password) {
+        const length = password.length;
+        if (length === 0) return 0;
+        
+        // Determine character set size
+        let charsetSize = 0;
+        if (/[a-z]/.test(password)) charsetSize += 26;
+        if (/[A-Z]/.test(password)) charsetSize += 26;
+        if (/[0-9]/.test(password)) charsetSize += 10;
+        if (/[^a-zA-Z0-9]/.test(password)) charsetSize += 33;
+        
+        // Calculate entropy
+        return length * Math.log2(charsetSize || 1);
+    }
+    
+    // Adjust entropy based on patterns
+    function adjustForPatterns(password, baseEntropy) {
+        let adjustedEntropy = baseEntropy;
+        const detectedPatterns = [];
+        
+        // Check for common patterns
+        for (const pattern of commonPatterns) {
+            if (pattern.regex.test(password)) {
+                adjustedEntropy *= 0.85; // Reduce entropy for each pattern
+                detectedPatterns.push(pattern.description);
+            }
+        }
+        
+        // Check for dictionary words
+        for (const word of commonWords) {
+            if (password.toLowerCase().includes(word)) {
+                adjustedEntropy *= 0.7; // Significant reduction for dictionary words
+                detectedPatterns.push(`Contains common word: "${word}"`);
+                break;
+            }
+        }
+        
+        // Check password length
+        if (password.length < 8) {
+            detectedPatterns.push("Too short (less than 8 characters)");
+        }
+        
+        return { adjustedEntropy, detectedPatterns };
+    }
+    
+    // Update the strength meter
+    function updateStrengthMeter(entropy) {
+        let color, strength;
+        
+        if (entropy < 28) {
+            color = '#f44336'; // Red
+            strength = 'Very Weak';
+        } else if (entropy < 36) {
+            color = '#ff9800'; // Orange
+            strength = 'Weak';
+        } else if (entropy < 60) {
+            color = '#ffc107'; // Yellow
+            strength = 'Moderate';
+        } else if (entropy < 128) {
+            color = '#4caf50'; // Green
+            strength = 'Strong';
+        } else {
+            color = '#2e7d32'; // Dark Green
+            strength = 'Very Strong';
+        }
+        
+        strengthMeter.style.backgroundColor = color;
+        strengthMeter.style.width = Math.min(100, entropy) + '%';
+        strengthText.textContent = strength;
+    }
+    
+    // Update entropy display
+    function updateEntropyDisplay(originalEntropy, adjustedEntropy) {
+        entropyValue.textContent = adjustedEntropy.toFixed(1);
+        entropyBar.style.width = Math.min(100, adjustedEntropy / 1.28) + '%';
+        
+        if (originalEntropy !== adjustedEntropy) {
+            entropyExplanation.textContent = `Original: ${originalEntropy.toFixed(1)} bits, Reduced due to patterns`;
+        } else {
+            entropyExplanation.textContent = 'Higher is better';
+        }
+    }
+    
+    // Update time estimates
+    function updateTimeEstimates(entropy) {
+        const combinations = Math.pow(2, entropy);
+        const onlineGuessesPerSecond = 100;
+        const offlineGuessesPerSecond = 1000000000; // 1 billion
+        
+        onlineTime.textContent = formatTime(combinations / onlineGuessesPerSecond);
+        offlineTime.textContent = formatTime(combinations / offlineGuessesPerSecond);
+    }
+    
+    // Format time in a human-readable way
+    function formatTime(seconds) {
+        if (seconds < 1) return "instantly";
+        if (seconds < 60) return `${seconds.toFixed(1)} seconds`;
+        if (seconds < 3600) return `${(seconds / 60).toFixed(1)} minutes`;
+        if (seconds < 86400) return `${(seconds / 3600).toFixed(1)} hours`;
+        if (seconds < 31536000) return `${(seconds / 86400).toFixed(1)} days`;
+        if (seconds < 3153600000) return `${(seconds / 31536000).toFixed(1)} years`;
+        
+        const centuries = seconds / 31536000 / 100;
+        if (centuries < 1000) return `${centuries.toFixed(1)} centuries`;
+        if (centuries < 1000000) return `${(centuries / 1000).toFixed(1)} millennia`;
+        return "longer than the universe has existed";
+    }
+    
+    // Update pattern list
+    function updatePatternList(patterns) {
+        if (patterns.length === 0) {
+            patternList.innerHTML = "<li>No significant issues detected</li>";
+            return;
+        }
+        
+        patternList.innerHTML = patterns.map(pattern => `<li>${pattern}</li>`).join('');
+    }
+    
+    // Update comparison tab
+    function updateComparisonTab(password, entropy) {
+        userPasswordDisplay.textContent = password || "Enter a password to compare";
+        userEntropy.textContent = entropy.toFixed(1);
+        
+        // Calculate character distribution
+        const charCounts = countCharacters(password);
+        userDistribution.textContent = getDistributionDescription(charCounts);
+        
+        // Generate random password if none exists
+        if (!randomPassword.textContent) {
+            randomPassword.textContent = generateRandomPassword(14);
+        }
+    }
+    
+    // Count character types in password
+    function countCharacters(password) {
+        const counts = {
+            lower: 0,
+            upper: 0,
+            digit: 0,
+            symbol: 0
+        };
+        
+        for (const char of password) {
+            if (LOWERCASE.includes(char)) counts.lower++;
+            else if (UPPERCASE.includes(char)) counts.upper++;
+            else if (DIGITS.includes(char)) counts.digit++;
+            else counts.symbol++;
+        }
+        
+        return counts;
+    }
+    
+    // Get distribution description
+    function getDistributionDescription(counts) {
+        const total = counts.lower + counts.upper + counts.digit + counts.symbol;
+        if (total === 0) return "N/A";
+        
+        const types = [];
+        if (counts.lower) types.push(`${Math.round(counts.lower / total * 100)}% lowercase`);
+        if (counts.upper) types.push(`${Math.round(counts.upper / total * 100)}% uppercase`);
+        if (counts.digit) types.push(`${Math.round(counts.digit / total * 100)}% digits`);
+        if (counts.symbol) types.push(`${Math.round(counts.symbol / total * 100)}% symbols`);
+        
+        return types.join(', ');
+    }
+    
+    // Reset analysis
+    function resetAnalysis() {
+        strengthMeter.style.width = '0%';
+        strengthMeter.style.backgroundColor = '#ccc';
+        strengthText.textContent = 'Not Rated';
+        entropyValue.textContent = '0';
+        entropyBar.style.width = '0%';
+        entropyExplanation.textContent = 'Higher is better';
+        onlineTime.textContent = 'instantly';
+        offlineTime.textContent = 'instantly';
+        patternList.innerHTML = "<li>Enter a password to see analysis</li>";
+        userPasswordDisplay.textContent = "Enter a password to compare";
+        userEntropy.textContent = "0";
+        userDistribution.textContent = "N/A";
+    }
+    
+    // Tab functionality
+    function openTab(evt, tabName) {
+        const tabcontent = document.getElementsByClassName("tabcontent");
+        for (let i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].style.display = "none";
+        }
+        
+        const tablinks = document.getElementsByClassName("tablinks");
+        for (let i = 0; i < tablinks.length; i++) {
+            tablinks[i].className = tablinks[i].className.replace(" active", "");
+        }
+        
+        document.getElementById(tabName).style.display = "block";
+        evt.currentTarget.className += " active";
+    }
+    </script>
+</body>
+</html>
